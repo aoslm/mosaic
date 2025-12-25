@@ -30,6 +30,16 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
+        /* Hide browser default number input arrows */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+}
     </style>
 </head>
 <body class="bg-gray-950 text-white font-sans min-h-screen selection:bg-blue-500 selection:text-white">
