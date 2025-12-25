@@ -223,7 +223,7 @@
                         <input id="video-input" type="file" class="sr-only" multiple accept="video/*" />
                     </label>
                     
-                    <!-- SETTINGS -->
+                    <!-- <!-- SETTINGS -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-gray-500 text-[10px] uppercase font-bold">Rows</label>
@@ -247,9 +247,85 @@
                             </select>
                         </div>
                     </div>
-                </div>
+                </div> -->
     
-                <button id="generate-btn" disabled class="w-full py-3 rounded-xl font-bold text-lg bg-gray-700 text-gray-400 cursor-not-allowed transition flex items-center justify-center">
+              
+
+
+                <!-- REIMAGINED SETTINGS SECTION -->
+<div class="bg-gray-950/50 p-4 rounded-xl border border-gray-800 space-y-4">
+    
+    <!-- Row 1: Grid Configuration -->
+    <div>
+        <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block">Grid Layout</label>
+        <div class="grid grid-cols-2 gap-4">
+            
+            <!-- Rows Input -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="align-justify" class="h-4 w-4 text-gray-500 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
+                <input id="rows-input" type="number" value="4" min="1" max="10" 
+                    class="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-all outline-none" 
+                    placeholder="Rows">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-600 text-xs">Rows</span>
+                </div>
+            </div>
+
+            <!-- Cols Input -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="columns" class="h-4 w-4 text-gray-500 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
+                <input id="cols-input" type="number" value="4" min="1" max="10" 
+                    class="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-all outline-none" 
+                    placeholder="Cols">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-600 text-xs">Cols</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Video Settings -->
+    <div>
+        <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block">Output Settings</label>
+        <div class="grid grid-cols-2 gap-4">
+            
+            <!-- Duration Input -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="clock" class="h-4 w-4 text-gray-500 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
+                <input id="duration-input" type="number" value="5" min="1" max="60" 
+                    class="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-all outline-none" 
+                    placeholder="Sec">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-600 text-xs">Sec</span>
+                </div>
+            </div>
+
+            <!-- FPS Custom Select Box -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="film" class="h-4 w-4 text-gray-500 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
+                <select id="fps-input" 
+                    class="appearance-none w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 pr-10 p-2.5 transition-all outline-none cursor-pointer">
+                    <option value="24">24 FPS (Film)</option>
+                    <option value="30" selected>30 FPS (Standard)</option>
+                    <option value="60">60 FPS (Smooth)</option>
+                </select>
+                <!-- Custom Chevron Icon -->
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400 group-hover:text-white transition-colors">
+                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>   <button id="generate-btn" disabled class="w-full py-3 rounded-xl font-bold text-lg bg-gray-700 text-gray-400 cursor-not-allowed transition flex items-center justify-center">
                     Check Console
                 </button>
                 
