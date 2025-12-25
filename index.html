@@ -461,7 +461,7 @@ input[type=number] {
                 const durationSec = parseInt(els.dur.value) || 5;
                 const fps = parseInt(els.fps.value) || 30;
                 
-                // Calculate precise frame duration in microseconds (1,000,000 / fps)
+                // Calculate precise frame duration in microseconds
                 const frameDurationMicro = 1_000_000 / fps;
                 
                 els.canvas.width = targetWidth;
@@ -516,7 +516,26 @@ input[type=number] {
                     v.muted = true;
                     v.playsInline = true;
                     v.crossOrigin = "anonymous";
-                    await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
+                    // Robust metadata loading
+                    await new Promise(r => { 
+                        v.onloadedmetadata = () => {
+                            // Ensure duration is usable
+                            if (v.duration === Infinity) {
+                                v.currentTime = 1e101;
+                                v.ontimeupdate = function() {
+                                    this.ontimeupdate = null;
+                                    this.currentTime = 0;
+                                    r();
+                                }
+                            } else {
+                                r();
+                            }
+                        };
+                        v.onerror = () => {
+                            log("Warning: A video failed to load, skipping.", "warn");
+                            r();
+                        };
+                    });
                     videos.push(v);
                 }
 
@@ -526,7 +545,6 @@ input[type=number] {
                 for(let f=0; f < totalFrames; f++) {
                     if (stopProcess) return;
                     
-                    // Use precise timing based on frame count
                     const time = f / fps; 
                     const timestampMicro = f * frameDurationMicro;
                     
@@ -538,7 +556,16 @@ input[type=number] {
                         await new Promise(r => setTimeout(r, 0));
                     }
 
-                    await Promise.all(videos.map(v => seekTo(v, time % v.duration)));
+                    // --- CRITICAL FIX: Safe Seek ---
+                    await Promise.all(videos.map(v => {
+                        // Protect against 0 or NaN duration which causes the crash
+                        let safeDuration = v.duration;
+                        if (!Number.isFinite(safeDuration) || safeDuration <= 0) {
+                            safeDuration = 1; // Default to 1s to avoid crash
+                        }
+                        
+                        return seekTo(v, time % safeDuration);
+                    }));
 
                     ctx.fillStyle = "#000";
                     ctx.fillRect(0, 0, targetWidth, targetHeight);
@@ -560,7 +587,6 @@ input[type=number] {
                         ctx.restore();
                     });
 
-                    // FIX: Pass explicit duration to the frame so the encoder knows how long it lasts
                     const frame = new VideoFrame(els.canvas, { 
                         timestamp: timestampMicro,
                         duration: frameDurationMicro 
@@ -600,154 +626,6 @@ input[type=number] {
                 els.btn.disabled = false;
             }
         }
-
-        // async function runEncodingProcess(forceLowQuality) {
-        //     stopProcess = false;
-        //     els.btn.disabled = true;
-        //     els.btn.innerText = forceLowQuality ? "Retrying (Safe Mode)..." : "Initializing...";
-        //     els.progress.classList.remove('hidden');
-        //     els.placeholder.classList.add('hidden');
-        //     els.video.classList.add('hidden');
-        //     els.download.classList.add('hidden');
-
-        //     const targetWidth = forceLowQuality ? 720 : 1080;
-        //     const targetHeight = forceLowQuality ? 1280 : 1920;
-        //     const targetLevel = forceLowQuality ? 'avc1.4d001f' : 'avc1.4d0033'; 
-
-        //     try {
-        //         const rows = parseInt(els.rows.value) || 4;
-        //         const cols = parseInt(els.cols.value) || 4;
-        //         const durationSec = parseInt(els.dur.value) || 5;
-        //         const fps = parseInt(els.fps.value) || 30;
-                
-        //         els.canvas.width = targetWidth;
-        //         els.canvas.height = targetHeight;
-        //         const ctx = els.canvas.getContext('2d');
-        //         const cellW = targetWidth / cols;
-        //         const cellH = targetHeight / rows;
-
-        //         log(`Config: ${targetWidth}x${targetHeight} @ ${fps}fps (${forceLowQuality ? 'Safe' : 'High Quality'})`);
-
-        //         const muxer = new Mp4Muxer.Muxer({
-        //             target: new Mp4Muxer.ArrayBufferTarget(),
-        //             video: { codec: 'avc', width: targetWidth, height: targetHeight },
-        //             fastStart: 'in-memory'
-        //         });
-
-        //         const videoEncoder = new VideoEncoder({
-        //             output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        //             error: (e) => {
-        //                 stopProcess = true;
-        //                 log("Encoder Error: " + e.message, "error");
-        //                 if (!forceLowQuality) {
-        //                     log("High Quality failed. Switching to Safe Mode (720p)...", "warn");
-        //                     setTimeout(() => runEncodingProcess(true), 1000);
-        //                 }
-        //             }
-        //         });
-
-        //         const codecConfig = {
-        //             codec: targetLevel, 
-        //             width: targetWidth,
-        //             height: targetHeight,
-        //             bitrate: forceLowQuality ? 2_500_000 : 6_000_000,
-        //             framerate: fps
-        //         };
-
-        //         try {
-        //             videoEncoder.configure(codecConfig);
-        //             log("Encoder configured.");
-        //         } catch (configErr) {
-        //             if (!forceLowQuality) {
-        //                 log("Level 5.1 rejected. Retrying Safe Mode...", "warn");
-        //                 return runEncodingProcess(true);
-        //             } else throw configErr;
-        //         }
-
-        //         log("Buffering videos...");
-        //         const videos = [];
-        //         for(let i=0; i < rows*cols; i++) {
-        //             const v = document.createElement('video');
-        //             v.src = uploadedFiles[i % uploadedFiles.length];
-        //             v.muted = true;
-        //             v.playsInline = true;
-        //             v.crossOrigin = "anonymous";
-        //             await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
-        //             videos.push(v);
-        //         }
-
-        //         const totalFrames = durationSec * fps;
-        //         log(`Starting Loop (${totalFrames} frames)`);
-
-        //         for(let f=0; f < totalFrames; f++) {
-        //             if (stopProcess) return;
-        //             const time = f / fps;
-                    
-        //             if(f % 5 === 0) {
-        //                 const pct = Math.round((f/totalFrames)*100);
-        //                 els.bar.style.width = `${pct}%`;
-        //                 els.pct.innerText = `${pct}%`;
-        //                 els.status.innerText = `Frame ${f}/${totalFrames}`;
-        //                 await new Promise(r => setTimeout(r, 0));
-        //             }
-
-        //             await Promise.all(videos.map(v => seekTo(v, time % v.duration)));
-
-        //             ctx.fillStyle = "#000";
-        //             ctx.fillRect(0, 0, targetWidth, targetHeight);
-                    
-        //             videos.forEach((v, idx) => {
-        //                 const r = Math.floor(idx / cols);
-        //                 const c = idx % cols;
-        //                 const x = c * cellW;
-        //                 const y = r * cellH;
-        //                 const ratio = Math.max(cellW / v.videoWidth, cellH / v.videoHeight);
-        //                 const sx = (cellW - v.videoWidth * ratio) / 2;
-        //                 const sy = (cellH - v.videoHeight * ratio) / 2;
-
-        //                 ctx.save();
-        //                 ctx.beginPath();
-        //                 ctx.rect(x, y, cellW, cellH);
-        //                 ctx.clip();
-        //                 ctx.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, x + sx, y + sy, v.videoWidth * ratio, v.videoHeight * ratio);
-        //                 ctx.restore();
-        //             });
-
-        //             const frame = new VideoFrame(els.canvas, { timestamp: (f * 1000000) / fps });
-        //             videoEncoder.encode(frame, { keyFrame: f % (fps * 2) === 0 });
-        //             frame.close();
-        //         }
-
-        //         if (stopProcess) return;
-
-        //         log("Flushing encoder...");
-        //         await videoEncoder.flush();
-        //         muxer.finalize();
-
-        //         const { buffer } = muxer.target;
-        //         const blob = new Blob([buffer], { type: 'video/mp4' });
-        //         const url = URL.createObjectURL(blob);
-
-        //         log(`Success! MP4 Generated.`, "success");
-
-        //         els.video.src = url;
-        //         els.video.classList.remove('hidden');
-        //         els.download.href = url;
-        //         els.download.download = `mosaic_${forceLowQuality ? '720p' : '1080p'}_${Date.now()}.mp4`;
-        //         els.download.classList.remove('hidden');
-        //         els.btn.disabled = false;
-        //         els.btn.innerText = "Generate MP4";
-
-        //     } catch (err) {
-        //         if (!forceLowQuality && !stopProcess) {
-        //             log("Unexpected error. Retrying Safe Mode...", "warn");
-        //             return runEncodingProcess(true);
-        //         }
-        //         stopProcess = true;
-        //         log("Stopped: " + err.message, "error");
-        //         els.btn.disabled = false;
-        //     }
-        // }
     </script>
 </body>
 </html>
